@@ -1,0 +1,39 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User{
+  id String @id @default(cuid())
+  githubId String @unique
+  username String 
+  email String? 
+  avatar String?
+  analyses Analysis[]
+  createdAt DateTime @default(now())
+}
+
+model Analysis{
+  id String @id @default(cuid())
+  userId String 
+  user User @relation(fields: [userId], references:[id])
+  totalScore Int 
+  recommendations  String[]
+  categories Category[]
+  createdAt DateTime @default(now())
+}
+
+model Category{
+  id String @id @default(cuid())
+  analysisId String 
+  analysis Analysis @relation(fields:[analysisId], references:[id])
+  name String
+  score Int
+  maxScore Int 
+  passed Boolean 
+  details String 
+}
