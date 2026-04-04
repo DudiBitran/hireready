@@ -5,6 +5,7 @@ export interface GitHubRepo {
   language: string | null;
   stargazers_count: number;
   updated_at: string;
+  description: string | null;
   topics: string[];
   default_branch: string;
 }

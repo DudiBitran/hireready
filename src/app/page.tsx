@@ -5,6 +5,9 @@ import {
   getRepoLanguages,
   hasGithubActions,
   hasReadme,
+  hasTests,
+  isRecentlyActive,
+  hasDescription,
 } from '@/lib/github';
 
 export default async function Home() {
@@ -12,8 +15,9 @@ export default async function Home() {
   if (session?.accessToken) {
     const repos = await getUserRepos(session.accessToken);
     const firstRepo = repos[0];
+    const owner = firstRepo.full_name.split('/')[0];
 
-    const [languages, actions, readme, commits] = await Promise.all([
+    const [languages, actions, readme, commits, tests] = await Promise.all([
       getRepoLanguages(
         firstRepo.full_name.split('/')[0],
         firstRepo.name,
@@ -34,9 +38,20 @@ export default async function Home() {
         firstRepo.name,
         session.accessToken
       ),
+      hasTests(owner, firstRepo.name, session.accessToken),
     ]);
+    const active = isRecentlyActive(firstRepo.updated_at);
+    const description = hasDescription(firstRepo.description);
 
-    console.log({ languages, actions, readme, commits });
+    console.log({
+      languages,
+      actions,
+      readme,
+      commits,
+      tests,
+      active,
+      description,
+    });
   }
 
   return <h1>HireReady</h1>;
