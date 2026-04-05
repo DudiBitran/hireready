@@ -9,6 +9,7 @@ import {
   isRecentlyActive,
   hasDescription,
 } from '@/lib/github';
+import { calculateScore } from '@/lib/scoring';
 
 export default async function Home() {
   const session = await auth();
@@ -40,6 +41,17 @@ export default async function Home() {
       ),
       hasTests(owner, firstRepo.name, session.accessToken),
     ]);
+
+    const score = calculateScore({
+      languages,
+      hasActions: actions,
+      hasReadme: readme,
+      commitCount: commits,
+      hasTests: tests,
+      isActive: isRecentlyActive(firstRepo.updated_at),
+      hasDescription: hasDescription(firstRepo.description),
+    });
+
     const active = isRecentlyActive(firstRepo.updated_at);
     const description = hasDescription(firstRepo.description);
 
@@ -51,6 +63,7 @@ export default async function Home() {
       tests,
       active,
       description,
+      score,
     });
   }
 
