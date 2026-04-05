@@ -4,12 +4,12 @@ function scoreLanguage(languages: Record<string, number>): ScoreCategory {
   const mainLanguages = ['TypeScript', 'JavaScript', 'Python', 'C#', 'Java'];
   const hasTS = 'TypeScript' in languages;
   const hasMainLanguage = mainLanguages.some((lang) => lang in languages);
-  const score = hasTS ? 20 : hasMainLanguage ? 10 : 0;
+  const score = hasTS ? 15 : hasMainLanguage ? 8 : 0;
   const passed = hasMainLanguage;
   return {
     name: 'Language',
     score,
-    maxScore: 20,
+    maxScore: 15,
     passed,
     details: hasTS
       ? 'TypeScript found — excellent choice for the Israeli market'
@@ -45,21 +45,21 @@ function scoreCICD(hasCICD: boolean): ScoreCategory {
 
 function scoreReadme(hasReadme: boolean): ScoreCategory {
   return {
-    name: 'README files',
-    score: hasReadme ? 10 : 0,
-    maxScore: 10,
+    name: 'README',
+    score: hasReadme ? 8 : 0,
+    maxScore: 8,
     passed: hasReadme,
     details: hasReadme
-      ? 'README files found in the project'
-      : 'No README files found — add README files to improve your score',
+      ? 'README found in the project'
+      : 'No README found — add README to improve your score',
   };
 }
 
 function scoreActivity(hasActivity: boolean): ScoreCategory {
   return {
-    name: 'Activity files',
-    score: hasActivity ? 5 : 0,
-    maxScore: 5,
+    name: 'Activity',
+    score: hasActivity ? 3 : 0,
+    maxScore: 3,
     passed: hasActivity,
     details: hasActivity
       ? 'Project updated in the last 6 months'
@@ -70,8 +70,8 @@ function scoreActivity(hasActivity: boolean): ScoreCategory {
 function scoreDescription(hasDescription: boolean): ScoreCategory {
   return {
     name: 'Description',
-    score: hasDescription ? 5 : 0,
-    maxScore: 5,
+    score: hasDescription ? 2 : 0,
+    maxScore: 2,
     passed: hasDescription,
     details: hasDescription
       ? 'Description found in the project'
@@ -81,19 +81,19 @@ function scoreDescription(hasDescription: boolean): ScoreCategory {
 
 function scoreCommits(hasCommits: number): ScoreCategory {
   let points = 0;
-  if (hasCommits > 20) {
-    points = 10;
-  } else if (hasCommits >= 10 && hasCommits <= 19) {
+  if (hasCommits >= 20) {
     points = 7;
-  } else if (hasCommits >= 5 && hasCommits <= 9) {
-    points = 4;
-  } else if (hasCommits <= 5) {
+  } else if (hasCommits >= 10) {
+    points = 5;
+  } else if (hasCommits >= 5) {
+    points = 3;
+  } else {
     points = 0;
   }
   return {
     name: 'Commits',
     score: points,
-    maxScore: 10,
+    maxScore: 7,
     passed: hasCommits >= 5,
     details:
       hasCommits >= 20
@@ -106,6 +106,7 @@ function scoreCommits(hasCommits: number): ScoreCategory {
   };
 }
 
+//calc the total score
 export function calculateScore(data: {
   languages: Record<string, number>;
   hasActions: boolean;
