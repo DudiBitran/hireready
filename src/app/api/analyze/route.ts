@@ -11,6 +11,7 @@ import {
   isRecentlyActive,
 } from '@/lib/github';
 import { calculateScore } from '@/lib/scoring';
+import { analyzeWithAI } from '@/lib/gemini';
 
 export async function POST() {
   const session = await auth();
@@ -21,6 +22,7 @@ export async function POST() {
 
   const token = session.accessToken as string;
   const userRepos = await getUserRepos(token);
+
   const analyses = await Promise.all(
     userRepos.map(async (repo) => {
       const owner = repo.full_name.split('/')[0];
@@ -41,8 +43,28 @@ export async function POST() {
         isActive: isRecentlyActive(repo.updated_at),
         hasDescription: hasDescription(repo.description),
       });
-      return score;
+
+      return {
+        score,
+        rawData: {
+          name: repo.name,
+          languages,
+          hasTests: tests,
+          hasCI: actions,
+          commitCount: commits,
+          hasReadme: readme,
+        },
+      };
     })
   );
-  return NextResponse.json({ analyses });
+
+  const aiReviews = await analyzeWithAI(analyses.map((a) => a.rawData));
+
+  const finalAnalyses = analyses.map((analysis, index) => ({
+    ...analysis.score,
+    totalScore: analysis.score.totalScore + aiReviews[index].score,
+    recommendations: aiReviews[index].recommendations,
+  }));
+
+  return NextResponse.json({ analyses: finalAnalyses });
 }
