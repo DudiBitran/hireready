@@ -8,6 +8,7 @@ export interface GitHubRepo {
   description: string | null;
   topics: string[];
   default_branch: string;
+  fork: boolean;
 }
 
 export interface ScoreCategory {

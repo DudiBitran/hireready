@@ -11,7 +11,7 @@ import {
   isRecentlyActive,
 } from '@/lib/github';
 import { calculateScore } from '@/lib/scoring';
-import { analyzeWithAI } from '@/lib/gemini';
+import { analyzeWithAI } from '@/lib/claude';
 
 export async function POST() {
   const session = await auth();
@@ -22,9 +22,17 @@ export async function POST() {
 
   const token = session.accessToken as string;
   const userRepos = await getUserRepos(token);
+  const meaningfulRepos = userRepos
+    .filter((repo) => !repo.fork)
+    .filter((repo) => isRecentlyActive(repo.updated_at))
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    )
+    .slice(0, 5);
 
   const analyses = await Promise.all(
-    userRepos.map(async (repo) => {
+    meaningfulRepos.map(async (repo) => {
       const owner = repo.full_name.split('/')[0];
       const [languages, actions, readme, commits, tests] = await Promise.all([
         getRepoLanguages(owner, repo.name, token),
@@ -61,6 +69,7 @@ export async function POST() {
   const aiReviews = await analyzeWithAI(analyses.map((a) => a.rawData));
 
   const finalAnalyses = analyses.map((analysis, index) => ({
+    repoName: analysis.rawData.name,
     ...analysis.score,
     totalScore: analysis.score.totalScore + aiReviews[index].score,
     recommendations: aiReviews[index].recommendations,
