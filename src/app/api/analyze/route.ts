@@ -73,6 +73,16 @@ export async function POST() {
     ...analysis.score,
     totalScore: analysis.score.totalScore + aiReviews[index].score,
     recommendations: aiReviews[index].recommendations,
+    categories: [
+      ...analysis.score.categories,
+      {
+        name: 'AI Code Review',
+        score: aiReviews[index].score,
+        maxScore: 30,
+        passed: aiReviews[index].score >= 15,
+        details: `AI reviewed your code quality — ${aiReviews[index].score}/30`,
+      },
+    ],
   }));
 
   return NextResponse.json({ analyses: finalAnalyses });
