@@ -1,5 +1,4 @@
 import { GitHubRepo } from '@/types';
-import { headers } from 'next/headers';
 
 // get the whole user repos
 export async function getUserRepos(accessToken: string): Promise<GitHubRepo[]> {
