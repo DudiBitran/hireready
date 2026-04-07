@@ -54,3 +54,64 @@ Return ONLY a JSON array:
   const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
 }
+
+export async function analyzeOverall(
+  repo: {
+    name: string;
+    languages: Record<string, number>;
+    hasTests: boolean;
+    hasCI: boolean;
+    commitCount: number;
+    hasReadme: boolean;
+    score: number;
+  }[]
+): Promise<{
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  marketReadiness: string;
+  priorityActions: { priority: number; action: string; impact: string }[];
+  techToAdd: { name: string; priority: string; reason: string }[];
+}> {
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: `You are an expert career advisor for the Israeli tech job market in 2026.
+    
+Analyze this developer's GitHub profile as a whole and provide comprehensive feedback.
+
+Repositories data:
+${JSON.stringify(repo, null, 2)}
+
+Return ONLY a JSON object in this exact format:
+{
+  "summary": "2-3 sentences describing the developer's overall profile",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "gaps": ["gap 1", "gap 2", "gap 3"],
+  "marketReadiness": "one sentence about readiness for Israeli job market",
+  "priorityActions": [
+    {
+      "priority": 1,
+      "action": "specific action to take",
+      "impact": "expected impact on job search"
+    }
+  ],
+  "techToAdd": [
+    {
+      "name": "technology name",
+      "priority": "must-have / nice-to-have",
+      "reason": "why Israeli companies want this"
+    }
+  ]
+}`,
+      },
+    ],
+  });
+  const text =
+    message.content[0].type === 'text' ? message.content[0].text : '';
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}

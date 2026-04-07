@@ -11,7 +11,7 @@ import {
   isRecentlyActive,
 } from '@/lib/github';
 import { calculateScore } from '@/lib/scoring';
-import { analyzeWithAI } from '@/lib/claude';
+import { analyzeOverall, analyzeWithAI } from '@/lib/claude';
 
 export async function POST() {
   const session = await auth();
@@ -67,6 +67,12 @@ export async function POST() {
   );
 
   const aiReviews = await analyzeWithAI(analyses.map((a) => a.rawData));
+  const overallFeedback = await analyzeOverall(
+    analyses.map((a, index) => ({
+      ...a.rawData,
+      score: analyses[index].score.totalScore + aiReviews[index].score,
+    }))
+  );
 
   const finalAnalyses = analyses.map((analysis, index) => ({
     repoName: analysis.rawData.name,
@@ -85,5 +91,12 @@ export async function POST() {
     ],
   }));
 
-  return NextResponse.json({ analyses: finalAnalyses });
+  return NextResponse.json({
+    overallScore: Math.round(
+      finalAnalyses.reduce((sum, a) => sum + a.totalScore, 0) /
+        finalAnalyses.length
+    ),
+    overallFeedback,
+    repos: finalAnalyses,
+  });
 }
