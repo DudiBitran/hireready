@@ -150,3 +150,77 @@ export function isRecentlyActive(updatedAt: string): boolean {
 export function hasDescription(description: string | null): boolean {
   return description !== null;
 }
+
+// get repos files
+
+export async function getRepoFilesList(
+  owner: string,
+  repo: string,
+  accessToken: string,
+  path: string = '',
+  depth: number = 0
+): Promise<{ name: string; type: string; path: string }[]> {
+  if (depth > 3) return [];
+
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        accept: 'application/vnd.github+json',
+      },
+    }
+  );
+
+  if (!response.ok) return [];
+
+  const items = await response.json();
+  const results: { name: string; type: string; path: string }[] = [];
+
+  for (const item of items) {
+    if (item.type === 'file') {
+      results.push({ name: item.name, type: item.type, path: item.path });
+    } else if (
+      item.type === 'dir' &&
+      !item.name.includes('node_modules') &&
+      !item.name.startsWith('.')
+    ) {
+      const subFiles = await getRepoFilesList(
+        owner,
+        repo,
+        accessToken,
+        item.path,
+        depth + 1
+      );
+      results.push(...subFiles);
+    }
+  }
+
+  return results;
+}
+
+//get file content
+export async function getFileContent(
+  owner: string,
+  repo: string,
+  path: string,
+  accessToken: string
+): Promise<string> {
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        accept: 'application/vnd.github+json',
+      },
+    }
+  );
+  if (!response.ok) {
+    throw Error('failed to get files from the repository');
+  }
+  const data = await response.json();
+  const content = Buffer.from(data.content, 'base64').toString('utf-8');
+  console.log(content);
+
+  return content;
+}

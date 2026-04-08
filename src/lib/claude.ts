@@ -12,6 +12,7 @@ export async function analyzeWithAI(
     hasCI: boolean;
     commitCount: number;
     hasReadme: boolean;
+    codeContent: string;
   }[]
 ): Promise<{ score: number; recommendations: string[] }[]> {
   const message = await client.messages.create({
@@ -38,7 +39,8 @@ For each repo, give 3 SPECIFIC recommendations:
 - YES: "Add Jest with React Testing Library — test your main components and API calls. This appears in 90% of Israeli job postings"
 - NOT: "Improve commits"
 - YES: "Use conventional commits format: feat: add login, fix: resolve auth bug — this shows professionalism to Israeli recruiters"
-
+For each repo, also analyze the actual code:
+${repos.map((r) => `=== ${r.name} ===\n${r.codeContent}`).join('\n\n---\n\n')}
 Return ONLY a JSON array:
 [
   {
@@ -51,8 +53,9 @@ Return ONLY a JSON array:
   });
   const text =
     message.content[0].type === 'text' ? message.content[0].text : '';
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('No JSON array found');
+  return JSON.parse(match[0]);
 }
 
 export async function analyzeOverall(
@@ -75,7 +78,7 @@ export async function analyzeOverall(
 }> {
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [
       {
         role: 'user',
@@ -114,4 +117,35 @@ Return ONLY a JSON object in this exact format:
     message.content[0].type === 'text' ? message.content[0].text : '';
   const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
+}
+
+export async function selectImportantFiles(
+  files: { name: string; path: string }[],
+  repoName: string
+): Promise<string[]> {
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 256,
+    messages: [
+      {
+        role: 'user',
+        content: `You are a code reviewer. Given this list of files from a GitHub repo called "${repoName}", select the 3 most important files that best reveal the developer's coding quality and skills.
+
+Files:
+${JSON.stringify(files, null, 2)}
+
+Return ONLY a JSON array of 3 file paths:
+["path/to/file1", "path/to/file2", "path/to/file3"]
+
+Prefer: main logic files, components, API routes, utilities.
+Avoid: config files, .gitignore, lock files, assets.`,
+      },
+    ],
+  });
+  const text =
+    message.content[0].type === 'text' ? message.content[0].text : '';
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error('No JSON array found in response');
+
+  return JSON.parse(match[0]);
 }

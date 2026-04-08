@@ -9,6 +9,8 @@ import {
   hasReadme,
   hasTests,
   isRecentlyActive,
+  getRepoFilesList,
+  getFileContent,
 } from '@/lib/github';
 import { calculateScore } from '@/lib/scoring';
 import { analyzeOverall, analyzeWithAI } from '@/lib/claude';
@@ -42,6 +44,37 @@ export async function POST() {
         hasTests(owner, repo.name, token),
       ]);
 
+      const filesList = await getRepoFilesList(owner, repo.name, token);
+      console.log(
+        `${repo.name} all files:`,
+        filesList.map((f) => f.path)
+      );
+      const codeExtensions = [
+        '.ts',
+        '.tsx',
+        '.js',
+        '.jsx',
+        '.py',
+        '.cs',
+        '.java',
+      ];
+      const codeFiles = filesList
+        .filter((f) => codeExtensions.some((ext) => f.path.endsWith(ext)))
+        .filter((f) => !f.path.includes('.config.'))
+        .filter((f) => !f.path.includes('prisma.config'))
+        .filter((f) => !f.path.includes('next.config'))
+        .filter((f) => !f.path.includes('eslint'))
+        .filter((f) => !f.path.includes('postcss'))
+        .slice(0, 3);
+      console.log(
+        `${repo.name} code files:`,
+        codeFiles.map((f) => f.path)
+      );
+      const filesContent = await Promise.all(
+        codeFiles.map((f) => getFileContent(owner, repo.name, f.path, token))
+      );
+      const codeContent = filesContent.join('\n\n---\n\n');
+
       const score = calculateScore({
         languages,
         hasActions: actions,
@@ -61,6 +94,7 @@ export async function POST() {
           hasCI: actions,
           commitCount: commits,
           hasReadme: readme,
+          codeContent,
         },
       };
     })
